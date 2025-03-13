@@ -1,0 +1,19 @@
+{
+    "dbcode.connections": [
+        {
+            "connectionId": "V5bByz3qJotfMNbJ26o-p",
+            "name": "Absensi",
+            "driver": "postgres",
+            "connectionType": "host",
+            "host": "localhost",
+            "port": 5432,
+            "ssl": false,
+            "username": "postgres",
+            "password": "LYI2YubGYfWpnlcLjdspjRAco7UiIjtxej/LTJTTPbtmuVYC",
+            "savePassword": "encrypted",
+            "salt": "7rYS9Jaewyb0KCSD5TJbzQ==",
+            "database": "absence",
+            "connectionTimeout": 30
+        }
+    ]
+}
