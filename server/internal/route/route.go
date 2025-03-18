@@ -7,6 +7,9 @@ import (
 )
 
 func New(engine *gin.Engine, services *service.Services) {
-	// User Route
+	// User Routes
 	NewUserRoute(engine, services)
+
+	// Attendance Routes
+	NewAttendanceRoute(engine, services)
 }

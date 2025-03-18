@@ -34,5 +34,6 @@ func UseRoleAdminMiddleware(ctx *gin.Context) {
 		})
 		return
 	}
+	ctx.Set(JWTContextUserKey, user)
 	ctx.Next()
 }

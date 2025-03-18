@@ -33,6 +33,22 @@ type UserUpdateProfileResponseData struct {
 	User *entity.User `json:"users"`
 }
 
+type PasswordChangeRequest struct {
+	CurrentPassword string `json:"current_password"`
+	Password        string `json:"password"`
+	RePassword      string `json:"re_password"`
+}
+
+type PasswordChangeResponse struct {
+	Success bool                       `json:"success"`
+	Message string                     `json:"message"`
+	Data    PasswordChangeResponseData `json:"data"`
+}
+
+type PasswordChangeResponseData struct {
+	User *entity.User `json:"users"`
+}
+
 type UserGetAllRequest struct {
 	Page    uint   `form:"page"`
 	PerPage uint   `form:"per_page"`

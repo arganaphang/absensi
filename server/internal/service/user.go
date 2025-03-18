@@ -19,6 +19,7 @@ type UserService interface {
 
 	Login(ctx context.Context, data dto.LoginRequest) (*entity.UserJWT, error)
 	RefreshToken(ctx context.Context, data dto.RefreshTokenRequest) (*entity.UserJWT, error)
+	UpdatePassword(ctx context.Context, id string, data dto.PasswordChangeRequest) (*entity.User, error)
 }
 
 type userService struct {
@@ -76,4 +77,15 @@ func (s userService) RefreshToken(ctx context.Context, data dto.RefreshTokenRequ
 		return nil, err
 	}
 	return token, nil
+}
+
+func (s userService) UpdatePassword(ctx context.Context, id string, data dto.PasswordChangeRequest) (*entity.User, error) {
+	user, err := s.Repositories.UserRepository.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !pkg.HashCompare(data.CurrentPassword, user.Password) {
+		return nil, pkg.ErrUnauthorized
+	}
+	return s.Repositories.UserRepository.UpdatePassword(ctx, id, data)
 }

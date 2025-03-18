@@ -17,6 +17,7 @@ import (
 type UserRoute interface {
 	GetProfile(c *gin.Context)
 	UpdateProfile(c *gin.Context)
+	UpdatePassword(c *gin.Context)
 	GetAll(c *gin.Context)
 	GetByID(c *gin.Context)
 	Create(c *gin.Context)
@@ -34,17 +35,23 @@ func NewUserRoute(engine *gin.Engine, services *service.Services) UserRoute {
 	route := &userRoute{
 		Services: services,
 	}
+	// All Routes
 	{
 		engine.POST("/login", route.Login)
 		engine.POST("/refresh-token", route.RefreshToken)
+		if gin.Mode() == gin.DebugMode {
+			engine.POST("/create-user", route.Create)
+		}
 	}
-	user := engine
+	user := engine.Group("/profile")
 	user.Use(middleware.UseRoleAllMiddleware)
 	{
-		user.GET("/profile", route.GetProfile)
-		user.PUT("/update-profile", route.UpdateProfile)
+		user.GET("", route.GetProfile)
+		user.PUT("/update", route.UpdateProfile)
+		user.POST("/password-change", route.UpdatePassword)
 		// TODO: Add change password endpoint
 	}
+	// Admin Routes
 	admin := engine.Group("/users")
 	admin.Use(middleware.UseRoleAdminMiddleware)
 	{
@@ -71,7 +78,7 @@ func (r userRoute) GetProfile(c *gin.Context) {
 	}
 	user, err := r.Services.UserService.GetByID(c, user.ID)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: err.Error()})
+		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: "user not found"})
 		return
 	}
 	if err != nil {
@@ -111,7 +118,43 @@ func (r userRoute) UpdateProfile(c *gin.Context) {
 		Role:      user.Role,
 	})
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: err.Error()})
+		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: "user not found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.CommonResponse{Success: false, Message: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, dto.UserUpdateProfileResponse{
+		Success: true,
+		Message: "profile updated",
+		Data:    dto.UserUpdateProfileResponseData{User: userResponse},
+	})
+}
+
+func (r userRoute) UpdatePassword(c *gin.Context) {
+	userAuth, ok := c.Get(middleware.JWTContextUserKey)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, dto.CommonResponse{Success: false, Message: "failed to get authenticated user"})
+		return
+	}
+	user, ok := userAuth.(*entity.User)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, dto.CommonResponse{Success: false, Message: "authenticated user is broken"})
+		return
+	}
+	var body dto.PasswordChangeRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, dto.CommonResponse{Success: false, Message: err.Error()})
+		return
+	}
+	if body.Password != body.RePassword {
+		c.JSON(http.StatusBadRequest, dto.CommonResponse{Success: false, Message: "password & re-password doesn't match"})
+		return
+	}
+	userResponse, err := r.Services.UserService.UpdatePassword(c, user.ID, body)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: "user not found"})
 		return
 	}
 	if err != nil {
@@ -147,7 +190,7 @@ func (r userRoute) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	user, err := r.Services.UserService.GetByID(c, id)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: err.Error()})
+		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: "user not found"})
 		return
 	}
 	if err != nil {
@@ -169,7 +212,7 @@ func (r userRoute) Create(c *gin.Context) {
 	}
 	userExist, err := r.Services.UserService.GetByEmail(c, body.Email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		c.JSON(http.StatusInternalServerError, dto.CommonResponse{Success: false, Message: err.Error()})
+		c.JSON(http.StatusInternalServerError, dto.CommonResponse{Success: false, Message: "user not found"})
 		return
 	}
 	if userExist != nil {
@@ -197,7 +240,7 @@ func (r userRoute) Update(c *gin.Context) {
 	}
 	user, err := r.Services.UserService.Update(c, id, body)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: err.Error()})
+		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: "user not found"})
 		return
 	}
 	if err != nil {
@@ -215,7 +258,7 @@ func (r userRoute) Delete(c *gin.Context) {
 	id := c.Param("id")
 	_, err := r.Services.UserService.GetByID(c, id)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: err.Error()})
+		c.JSON(http.StatusNotFound, dto.CommonResponse{Success: false, Message: "user not found"})
 		return
 	}
 	err = r.Services.UserService.Delete(c, id)
@@ -234,7 +277,7 @@ func (r userRoute) Login(c *gin.Context) {
 	}
 	_, err := r.Services.UserService.GetByEmail(c, body.Email)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		c.JSON(http.StatusUnauthorized, dto.CommonResponse{Success: false, Message: err.Error()})
+		c.JSON(http.StatusUnauthorized, dto.CommonResponse{Success: false, Message: "user not found"})
 		return
 	}
 	if err != nil {

@@ -9,10 +9,11 @@
             "port": 5432,
             "ssl": false,
             "username": "postgres",
-            "password": "LYI2YubGYfWpnlcLjdspjRAco7UiIjtxej/LTJTTPbtmuVYC",
+            "password": "2sA+5qh0CPNLKgIEDGTbNeuxNmAhEDLALjVNK9gO240Fpaco",
             "savePassword": "encrypted",
-            "salt": "7rYS9Jaewyb0KCSD5TJbzQ==",
-            "database": "absence",
+            "salt": "PtDZRQPeFQTePHcCWFYU+Q==",
+            "database": "absensi",
+            "readOnly": false,
             "connectionTimeout": 30
         }
     ]

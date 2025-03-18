@@ -22,6 +22,7 @@ type UserRepository interface {
 	Create(ctx context.Context, data dto.UserCreateRequest) (*entity.User, error)
 	Update(ctx context.Context, id string, data dto.UserUpdateRequest) (*entity.User, error)
 	Delete(ctx context.Context, id string) error
+	UpdatePassword(ctx context.Context, id string, data dto.PasswordChangeRequest) (*entity.User, error)
 }
 
 type userRepository struct {
@@ -53,15 +54,16 @@ func (r userRepository) GetAll(ctx context.Context, request dto.UserGetAllReques
 	if request.Role != "" {
 		stmt = stmt.Where(goqu.C("role").Eq(request.Role))
 	}
+	stmtAll := stmt // To make query count work
 	if request.Sort != "" {
 		if strings.ToLower(request.SortBy) == "asc" {
-			stmt = stmt.Order(goqu.C(request.Sort).Asc())
+			stmtAll = stmtAll.Order(goqu.C(request.Sort).Asc())
 		}
 		if strings.ToLower(request.SortBy) == "desc" {
-			stmt = stmt.Order(goqu.C(request.Sort).Desc())
+			stmtAll = stmtAll.Order(goqu.C(request.Sort).Desc())
 		}
 	}
-	sql, _, _ := stmt.ToSQL()
+	sql, _, _ := stmtAll.ToSQL()
 	users := []entity.User{}
 	if err := r.DB.Select(&users, sql); err != nil {
 		return nil, meta, err
@@ -163,4 +165,34 @@ func (r userRepository) Delete(ctx context.Context, id string) error {
 		return err
 	}
 	return nil
+}
+
+func (r userRepository) UpdatePassword(ctx context.Context, id string, data dto.PasswordChangeRequest) (*entity.User, error) {
+	password, err := pkg.HashCreate(data.Password)
+	if err != nil {
+		return nil, err
+	}
+	record := goqu.Record{
+		"password":   password,
+		"updated_at": time.Now(),
+	}
+	sql, _, err := goqu.Update(entity.TABLE_USERS).
+		Set(record).
+		Where(goqu.C("id").Eq(id)).
+		Returning("*").
+		ToSQL()
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.DB.Queryx(sql)
+	if err != nil {
+		return nil, err
+	}
+	var user entity.User
+	if rows.Next() {
+		if err := rows.StructScan(&user); err != nil {
+			return nil, err
+		}
+	}
+	return &user, nil
 }

@@ -3,7 +3,6 @@ package middleware
 import (
 	"absensi/internal/dto"
 	"absensi/pkg"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -23,8 +22,6 @@ func UseRoleAllMiddleware(ctx *gin.Context) {
 	}
 	user, err := pkg.JWTDecode(header[1])
 	if err != nil {
-
-		fmt.Println("OALAH MASUK KE ALL JANCOK")
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, dto.CommonResponse{
 			Success: false,
 			Message: err.Error(),
