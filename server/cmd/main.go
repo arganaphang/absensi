@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -28,8 +29,17 @@ func main() {
 		zap.L().Fatal("failed to connect to database", zap.Error(err))
 	}
 
+	gin.SetMode(gin.ReleaseMode)
 	app := gin.Default()
 	app.SetTrustedProxies(nil)
+	config := cors.DefaultConfig()
+	config.AddAllowHeaders("Authorization")
+	config.AllowCredentials = true
+	config.AllowOrigins = []string{"http://google.com"}
+	config.AllowOriginFunc = func(origin string) bool {
+		return true
+	}
+	app.Use(cors.New(config))
 
 	repositories := repository.NewRepositories(db)
 	services := service.NewServices(repositories)

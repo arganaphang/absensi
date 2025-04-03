@@ -78,27 +78,27 @@ func JWTDecode(s string) (*entity.User, error) {
 
 }
 
-func JWTRefresh(accessKey string, refreshKey string) (*entity.UserJWT, error) {
+func JWTRefresh(accessKey string, refreshKey string) (*entity.User, *entity.UserJWT, error) {
 	// refresh key
 	refreshClaims := &RefreshClaims{}
 	tknRefreshKey, err := jwt.ParseWithClaims(refreshKey, refreshClaims, func(token *jwt.Token) (any, error) {
 		return jwtSecretKey, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if !tknRefreshKey.Valid {
-		return nil, ErrUnauthorized // not valid
+		return nil, nil, ErrUnauthorized // not valid
 	}
 	// If refresh token already timeout return err
 	if time.Now().After(refreshClaims.ExpiresAt.Time) {
-		return nil, ErrUnauthorized // not enough time to refresh
+		return nil, nil, ErrUnauthorized // not enough time to refresh
 	}
 	refreshClaims.ExpiresAt = jwt.NewNumericDate(jwtRefreshKeyExpirationTime)
 	tokenRefreshKey := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	tokenRefreshKeyStr, err := tokenRefreshKey.SignedString(jwtSecretKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// refresh key
 	accessClaims := &UserClaims{}
@@ -106,23 +106,23 @@ func JWTRefresh(accessKey string, refreshKey string) (*entity.UserJWT, error) {
 		return jwtSecretKey, nil
 	})
 	if err != nil && !errors.Is(err, jwt.ErrTokenExpired) {
-		return nil, err
+		return nil, nil, err
 	} else {
 		tknAccessKey.Valid = true // LOLLLL
 	}
 	if !tknAccessKey.Valid {
-		return nil, ErrUnauthorized // not valid
+		return nil, nil, ErrUnauthorized // not valid
 	}
 	accessClaims.ExpiresAt = jwt.NewNumericDate(jwtAccessKeyExpirationTime)
 	tokenAccessKey := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	tokenAccessKeyStr, err := tokenAccessKey.SignedString(jwtSecretKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	userJWT := entity.UserJWT{
 		AccessToken:  tokenAccessKeyStr,
 		RefreshToken: tokenRefreshKeyStr,
 	}
-	return &userJWT, nil
+	return &accessClaims.User, &userJWT, nil
 }

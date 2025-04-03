@@ -34,9 +34,10 @@ type UserUpdateProfileResponseData struct {
 }
 
 type PasswordChangeRequest struct {
-	CurrentPassword string `json:"current_password"`
-	Password        string `json:"password"`
-	RePassword      string `json:"re_password"`
+	Token           string `json:"token" binding:"required"`
+	CurrentPassword string `json:"current_password" binding:"required"`
+	Password        string `json:"password" binding:"required"`
+	RePassword      string `json:"re_password" binding:"required"`
 }
 
 type PasswordChangeResponse struct {
@@ -137,6 +138,7 @@ type LoginResponse struct {
 
 type LoginResponseData struct {
 	Token *entity.UserJWT `json:"token"`
+	User  *entity.User    `json:"user"`
 }
 
 type RefreshTokenRequest struct {
@@ -152,4 +154,5 @@ type RefreshTokenResponse struct {
 
 type RefreshTokenResponseData struct {
 	Token *entity.UserJWT `json:"token"`
+	User  *entity.User    `json:"user"`
 }

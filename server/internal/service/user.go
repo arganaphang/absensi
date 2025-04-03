@@ -17,8 +17,8 @@ type UserService interface {
 	Update(ctx context.Context, id string, data dto.UserUpdateRequest) (*entity.User, error)
 	Delete(ctx context.Context, id string) error
 
-	Login(ctx context.Context, data dto.LoginRequest) (*entity.UserJWT, error)
-	RefreshToken(ctx context.Context, data dto.RefreshTokenRequest) (*entity.UserJWT, error)
+	Login(ctx context.Context, data dto.LoginRequest) (*entity.User, *entity.UserJWT, error)
+	RefreshToken(ctx context.Context, data dto.RefreshTokenRequest) (*entity.User, *entity.UserJWT, error)
 	UpdatePassword(ctx context.Context, id string, data dto.PasswordChangeRequest) (*entity.User, error)
 }
 
@@ -56,27 +56,27 @@ func (s userService) Delete(ctx context.Context, id string) error {
 	return s.Repositories.UserRepository.Delete(ctx, id)
 }
 
-func (s userService) Login(ctx context.Context, data dto.LoginRequest) (*entity.UserJWT, error) {
+func (s userService) Login(ctx context.Context, data dto.LoginRequest) (*entity.User, *entity.UserJWT, error) {
 	user, err := s.Repositories.UserRepository.GetByEmail(ctx, data.Email)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if !pkg.HashCompare(data.Password, user.Password) {
-		return nil, pkg.ErrUnauthorized
+		return nil, nil, pkg.ErrUnauthorized
 	}
 	token, err := pkg.JWTEncode(*user)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return token, nil
+	return user, token, nil
 }
 
-func (s userService) RefreshToken(ctx context.Context, data dto.RefreshTokenRequest) (*entity.UserJWT, error) {
-	token, err := pkg.JWTRefresh(data.AccessToken, data.RefreshToken)
+func (s userService) RefreshToken(ctx context.Context, data dto.RefreshTokenRequest) (*entity.User, *entity.UserJWT, error) {
+	user, token, err := pkg.JWTRefresh(data.AccessToken, data.RefreshToken)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return token, nil
+	return user, token, nil
 }
 
 func (s userService) UpdatePassword(ctx context.Context, id string, data dto.PasswordChangeRequest) (*entity.User, error) {

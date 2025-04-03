@@ -38,10 +38,19 @@ func (r attendanceRepository) GetAttendances(ctx context.Context, request dto.Ge
 	}
 	limit, offset := meta.ToSQL()
 	stmt := goqu.From(entity.TABLE_ATTENDANCES).Limit(limit).Offset(offset)
-	if request.StartDate != "" { // TODO: Validate Date
+	// Validate Date
+	if request.StartDate != "" {
+		if _, err := time.Parse(time.DateOnly, request.StartDate); err != nil {
+			return nil, meta, err
+		}
 		stmt = stmt.Where(goqu.C("created_at").Gte(request.StartDate))
 	}
-	if request.EndDate != "" { // TODO: Validate Date + 1 Day
+	if request.EndDate != "" {
+		endDate, err := time.Parse(time.DateOnly, request.EndDate)
+		if err != nil {
+			return nil, meta, err
+		}
+		request.EndDate = endDate.AddDate(0, 0, 1).Format(time.DateOnly)
 		stmt = stmt.Where(goqu.C("created_at").Lt(request.EndDate))
 	}
 	sql, _, _ := stmt.Order(goqu.C("created_at").Desc()).ToSQL()

@@ -284,7 +284,7 @@ func (r userRoute) Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, dto.CommonResponse{Success: false, Message: err.Error()})
 		return
 	}
-	token, err := r.Services.UserService.Login(c, body)
+	user, token, err := r.Services.UserService.Login(c, body)
 	if err != nil && errors.Is(err, pkg.ErrUnauthorized) {
 		c.JSON(http.StatusUnauthorized, dto.CommonResponse{Success: false, Message: err.Error()})
 		return
@@ -293,10 +293,10 @@ func (r userRoute) Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, dto.CommonResponse{Success: false, Message: err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, dto.LoginResponse{
+	c.JSON(http.StatusOK, dto.LoginResponse{
 		Success: true,
 		Message: "login success",
-		Data:    dto.LoginResponseData{Token: token},
+		Data:    dto.LoginResponseData{Token: token, User: user},
 	})
 }
 
@@ -306,7 +306,7 @@ func (r userRoute) RefreshToken(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, dto.CommonResponse{Success: false, Message: err.Error()})
 		return
 	}
-	token, err := r.Services.UserService.RefreshToken(c, body)
+	user, token, err := r.Services.UserService.RefreshToken(c, body)
 	if err != nil && errors.Is(err, pkg.ErrUnauthorized) {
 		c.JSON(http.StatusUnauthorized, dto.CommonResponse{Success: false, Message: err.Error()})
 		return
@@ -318,6 +318,6 @@ func (r userRoute) RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.RefreshTokenResponse{
 		Success: true,
 		Message: "refresh token success",
-		Data:    dto.RefreshTokenResponseData{Token: token},
+		Data:    dto.RefreshTokenResponseData{Token: token, User: user},
 	})
 }
